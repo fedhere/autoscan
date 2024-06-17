@@ -803,7 +803,6 @@ def extract_features(data_set, debug=False, n_jobs=1, objlist=None,
 
     feats_noref: array_like, shape (n_samples, n_features)
         Features of extracted objects for which no reference source was detected.
-
     feats_ref: array_like, shape (n_samples, n_features)
         Features of extracted objects for which a reference source was detected.
     """
@@ -811,8 +810,9 @@ def extract_features(data_set, debug=False, n_jobs=1, objlist=None,
     # TODO: Document
 
     if len(data_set) == 0:
-        raise utils.NoDataException, 'Extract_features called on an empty data set.' \
-                                     'Check that STAMPS.LIST is not empty.'
+        logging.error('Extract_features called on an empty data set.' \
+                                     'Check that STAMPS.LIST is not empty.')
+        raise utils.NoDataException
 
     # Build stamp path array.  This object is a spreadsheet that
     # points to the location of postage stamps at NCSA.

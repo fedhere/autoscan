@@ -37,7 +37,7 @@ def print_funcname(func):
     functions in debug mode.'''
 
     def newfunc(oper, sci, fh, f, sex, stampx, impix):
-        print 'executing {0}'.format(func.__name__)
+        print ('executing {0}'.format(func.__name__))
         return func(oper, sci, fh, f, sex, stampx, impix)
 
     return newfunc
