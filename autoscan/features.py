@@ -18,9 +18,9 @@ import sep
 import sys
 from numpy.lib import recfunctions
 
-from . import io
+from . import ios
 from . import utils
-from . import db_connect
+#from . import db_connect
 
 # Numeric codes for bands.
 bm = {'g':0, 'r':1, 'i':2, 'z':3}
@@ -318,7 +318,6 @@ def sci(cid, oper, session, log):
     ra_oper = oper['ra']
     dec_oper = oper['dec']
     filt = oper['band'].upper()
-
     ra_hi = float(ra_oper + (5 * u.arcsec).to(u.deg).value)
     ra_lo = float(ra_oper - (5 * u.arcsec).to(u.deg).value)
     dec_hi = float(dec_oper + (5 * u.arcsec).to(u.deg).value)
@@ -404,10 +403,9 @@ def snobs(cid, session, season, log, objlist=None):
     
     a dict eg. oper['mag'] = the magnitude of the candidate from the snobs table
     '''
-
     if objlist is not None:
         try:
-            retrow = objlist[objlist['snobjid'] == cid][0]
+            retrow = objlist[objlist['snobjid'] == cid]
         except IndexError as e:
             logging.error('WARNING: %s DOES NOT CONTAIN %s.' % (objlist.name, cid))
             raise e
@@ -452,8 +450,8 @@ def compress(pixels):
                      pixels[2 * i + 1, 2 * j] +
                      pixels[2 * i + 1, 2 * j + 1]
                      )
-             for j in xrange(25)]
-            for i in xrange(25)]
+             for j in range(25)]
+            for i in range(25)]
     )
     return compressed_pixels
 
@@ -461,7 +459,11 @@ def read_filterObj_file(objlist):
 
     '''Parse a filterObj output file, returning its tabular
     information as a numpy array.'''
-
+    # FBB hack to replace proper object list FBB 6/2024
+    import pandas as pd
+    return pd.read_csv(objlist, sep="  ", header=None,
+                       names=["snobjid","srch","temp","diff"])
+    
     diffim_info = utils.keyed_file_to_dict(objlist)
 
     # Make sure the file is rewound
@@ -655,9 +657,10 @@ def _extract_subseq(seq, i, level, objlist, des_services,
     log = logging.getLogger('%d' % i)
 
     features = dict()
-    cursor = db_connect.db_connect(des_services, des_db_section)
+    #cursor = db_connect.db_connect(des_services, des_db_section)
     season = 'Y1' if readlegacyDB else 'NotY1'
     
+
     for j, (snobjid, srch, temp, diff) in enumerate(seq):
  
         # Initial type enforcement.
@@ -674,7 +677,7 @@ def _extract_subseq(seq, i, level, objlist, des_services,
         # Get renormalized, uncompressed brink pixels.
         log.debug('Reading brink pixels for %d.', cid)
         try:
-            spix, tpix, dpix = io.pix(srch, temp, diff, log=log)
+            spix, tpix, dpix = ios.pix(srch, temp, diff, log=log)
         except IOError as e:
             log.warning("Failed to read brink pixels for %d.", cid, exc_info=True)
             log.warning("Adding %d to error list.", cid)
@@ -706,7 +709,7 @@ def _extract_subseq(seq, i, level, objlist, des_services,
         log.debug('Performing source extraction / photometry on %s.', diff)
 
         try:
-            dflux, dfluxerr, dflag = sep.apercirc(dpix, 25., 25., 5.)
+            dflux, dfluxerr, dflag = sep.sum_circle(dpix, [25.], [25.], [5.])
         except Exception as e:
             log.warning('Failed to sep diffim on %d.', cid, exc_info=True)
             info_dict['error_msg'] = 'diffim sep failure'
@@ -717,29 +720,28 @@ def _extract_subseq(seq, i, level, objlist, des_services,
 
         log.debug('Performing aperture photometry on %s', temp)
         try:
-            tflux, tfluxerr, tflag = sep.apercirc(tpix, 25., 25., 5.)
+            tflux, tfluxerr, tflag = sep.sum_circle(dpix, [25.], [25.], [5.])
         except Exception as e:
             log.warning('Failed to sep aper for %s.', cid, exc_info=True)
             info_dict['error_msg'] = 'aper sep failure'
             continue
             
         cat['aper'] = {'flux_aper':tflux}
-        
         log.debug('Extracting information from SNOBS for %d.', cid)
         try:
-            oper = snobs(cid, cursor, season, log, objlist)
+            oper = snobs(cid, None, season, log, objlist)
         except:
             log.warning('Failed to extract SNOBS info for %d.', cid, exc_info=True)
             info_dict['error_msg'] = 'SNOBS extraction failure'
             continue
         
-        log.debug('Extracint information from SNACOADDOBJECTS for %d.', cid)
-        try:
-            scidata = sci(cid, oper, cursor, log)
-        except:
-            log.warning('Failed to extract SNACOADDOBJECTS info for %d.', cid, exc_info=True)
-            info_dict['error_msg'] = 'SNACOADD extraction failure'
-            continue
+        #log.debug('Extracint information from SNACOADDOBJECTS for %d.', cid)
+        #try:
+        #    scidata = sci(cid, oper, None, log)
+        #except:
+        #    log.warning('Failed to extract SNACOADDOBJECTS info for %d.', cid, exc_info=True)
+        #    info_dict['error_msg'] = 'SNACOADD extraction failure'
+        #    continue
 
         # Compute features now.
 
@@ -748,7 +750,7 @@ def _extract_subseq(seq, i, level, objlist, des_services,
 
         # feature args:
         
-        args = (img, cat, oper, scidata, imgrn)
+        args = (img, cat, oper, None, imgrn)
 
         try:
             gauss, scale, amp = gaussscaleamp(*args)
@@ -821,7 +823,7 @@ def extract_features(data_set, debug=False, n_jobs=1, objlist=None,
 
     # Set loglevel.
     level = logging.DEBUG if debug else logging.INFO
-
+    
     # Extract features in parallel.
     features = np.array(Parallel(n_jobs=n_jobs)(
         delayed(_extract_subseq)(seq, i, level, objlist, des_services, des_db_section, readlegacyDB)
@@ -829,15 +831,15 @@ def extract_features(data_set, debug=False, n_jobs=1, objlist=None,
 
 
     # Conslidate logs.
-    try: 
-        baselogger_file = open(logging.getLogger('').handlers[0].baseFilename, 'a')
-    except AttributeError:
-        baselogger_file = sys.stdout
-    for i in range(n_jobs):
-        with open('%d.log' % i, 'r') as l:
-            name = l.name
-            baselogger_file.write(l.read())
-        os.remove(name)
+    #try: 
+    #    baselogger_file = open(logging.getLogger('').handlers[0].baseFilename, 'a')
+    #except AttributeError:
+    #    baselogger_file = sys.stdout
+    #for i in range(n_jobs):
+    #    with open('%d.log' % i, 'r') as l:
+    #        name = l.name
+    #        baselogger_file.write(l.read())
+    #    os.remove(name)
 
     # Consolidate features.
     pooled = dict()

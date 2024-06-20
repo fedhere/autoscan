@@ -332,7 +332,7 @@ if __name__ == '__main__':
     logging.info('Acquiring stamps from %s.', stamps_fullpath)
     ps = lambda stamppath: os.path.join(ins.stamppath, stamppath)
     stamp_array = np.atleast_1d(np.genfromtxt(stamps_fullpath,
-                                              dtype=None,
+                                              dtype=[int, 'S26', 'S26', 'S26'],
                                               usecols=[1, 2, 3, 4],
                                               names=(
                                                   'id',
@@ -346,9 +346,11 @@ if __name__ == '__main__':
                                               },
                                               autostrip=True))
 
+    
     if len(stamp_array) == 0:
         logging.error('Input file %s is empty.', ins.stamplist)
         produce_failure(stamp_array['id'])
+    print(stamp_array)
 
     # Load classifiers.
     logging.info('Loading classifier.')

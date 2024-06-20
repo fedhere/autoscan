@@ -4,7 +4,7 @@ import pickle
 import numpy as np
 from pkg_resources import resource_string
 
-from . import db_connect
+#from . import db_connect
 
 
 class MLTrainingSet:

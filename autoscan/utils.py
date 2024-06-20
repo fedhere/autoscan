@@ -79,7 +79,8 @@ def center(string, ll):
 def split_seq(seq, procs):
     """Split a sequence into `procs` subsequences."""
     newseq = []
-    proc_load = len(seq) / procs
+    proc_load = int(len(seq) / procs)
+    
     for i in range(procs):
         if i == procs - 1:
             newseq.append(seq[i * proc_load:])
