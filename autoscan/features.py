@@ -18,7 +18,7 @@ import sep
 import sys
 from numpy.lib import recfunctions
 
-from . import ios
+from . import io
 from . import utils
 #from . import db_connect
 
@@ -677,7 +677,7 @@ def _extract_subseq(seq, i, level, objlist, des_services,
         # Get renormalized, uncompressed brink pixels.
         log.debug('Reading brink pixels for %d.', cid)
         try:
-            spix, tpix, dpix = ios.pix(srch, temp, diff, log=log)
+            spix, tpix, dpix = io.pix(srch, temp, diff, log=log)
         except IOError as e:
             log.warning("Failed to read brink pixels for %d.", cid, exc_info=True)
             log.warning("Adding %d to error list.", cid)
