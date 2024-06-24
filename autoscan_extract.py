@@ -261,7 +261,7 @@ if __name__ == '__main__':
     
 
     logging.info('Acquiring stamps from %s.', stamps_fullpath)
-    ps = lambda stamppath: os.path.join(ins.stamppath, str(stamppath))
+    ps = lambda stamppath: os.path.join(ins.stamppath, str(stamppath)[2:-1])
     stamp_array = np.genfromtxt(os.path.join(ins.stamppath, str(ins.stamplist)),
                                              dtype=[int,'S39', 'S39', 'S39'],
                                 names=(
@@ -305,8 +305,7 @@ if __name__ == '__main__':
         raise e
 
     # Success?
-    if len(data) == 0:
-        print("no data")
+    assert len(data) > 0, 'no data was extracted'
 
     # Munge output of `extract_features`.
     names = ['snobjid'] + features.FEATS
@@ -319,8 +318,9 @@ if __name__ == '__main__':
 
 
     if ins.results:
-        import json
-        ins.results.write(json.dumps(data))
+        print(ins.results)
+        ins.results.write(str(data))
+    
         
 
     end = time()

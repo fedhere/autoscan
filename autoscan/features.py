@@ -462,7 +462,7 @@ def read_filterObj_file(objlist):
     # FBB hack to replace proper object list FBB 6/2024
     import pandas as pd
     return pd.read_csv(objlist, sep="  ", header=None,
-                       names=["snobjid","srch","temp","diff"])
+                       names=["snobjid","srch","temp","diff"], engine='python')
     
     diffim_info = utils.keyed_file_to_dict(objlist)
 
